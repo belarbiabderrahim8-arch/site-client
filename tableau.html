@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>📋 Tableau des Commandes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+    .fade-in {
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .table-responsive {
+      overflow-x: auto;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .action-btn {
+      transition: all 0.2s ease;
+    }
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg">
+      <div class="container mx-auto px-4 py-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div class="flex items-center mb-4 md:mb-0">
+            <i class="fas fa-clipboard-list text-3xl mr-3"></i>
+            <h1 class="text-2xl md:text-3xl font-bold">Tableau des Commandes Reçues</h1>
+          </div>
+          <div class="flex items-center space-x-2">
+            <div class="hidden md:block bg-green-500 px-3 py-1 rounded-full text-sm font-medium">
+              <span id="orderCount">0</span> commandes
+            </div>
+            <button onclick="logout()" class="bg-white text-green-700 hover:bg-gray-100 px-4 py-2 rounded-lg font-medium flex items-center">
+              <i class="fas fa-sign-out-alt mr-2"></i> Déconnexion
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-6">
+      <!-- Action Bar -->
+      <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center">
+            <div class="relative">
+              <input type="text" id="searchInput" placeholder="Rechercher une commande..." 
+                     class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 w-full md:w-64">
+              <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="renderOrders()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg font-medium flex items-center">
+              <i class="fas fa-sync-alt mr-2"></i> Actualiser
+            </button>
+            <button onclick="exportToCSV()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center">
+              <i class="fas fa-file-excel mr-2"></i> Exporter Excel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+        <div class="flex flex-wrap items-center gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Filtrer par :</label>
+            <select id="filterPayment" onchange="renderOrders()" class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-green-500 focus:border-green-500">
+              <option value="all">Tous les paiements</option>
+              <option value="cash">Paiement à domicile</option>
+              <option value="card">Carte bancaire</option>
+              <option value="edahabia">EDahabia</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Trier par :</label>
+            <select id="sortBy" onchange="renderOrders()" class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-green-500 focus:border-green-500">
+              <option value="date-desc">Date (récent)</option>
+              <option value="date-asc">Date (ancien)</option>
+              <option value="name-asc">Nom (A-Z)</option>
+              <option value="name-desc">Nom (Z-A)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orders Table -->
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="table-responsive">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produit</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qté</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Téléphone</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wilaya</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paiement</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ordersList" class="bg-white divide-y divide-gray-200">
+              <!-- Orders will be inserted here -->
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Empty State -->
+        <div id="noOrders" class="text-center py-12">
+          <i class="fas fa-clipboard text-5xl text-gray-300 mb-4"></i>
+          <h3 class="text-lg font-medium text-gray-500">Aucune commande trouvée</h3>
+          <p class="text-gray-400 mt-1">Les commandes apparaîtront ici lorsqu'elles seront disponibles</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 py-4">
+      <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+        &copy; 2025 - Système de gestion des commandes. Tous droits réservés.
+      </div>
+    </footer>
+  </div>
+
+  <!-- Order Details Modal -->
+  <div id="orderModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-gray-200 px-6 py-4">
+        <h3 class="text-xl font-bold text-gray-800">Détails de la commande</h3>
+        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="p-6" id="modalContent">
+        <!-- Modal content will be inserted here -->
+      </div>
+      <div class="border-t border-gray-200 px-6 py-4 flex justify-end">
+        <button onclick="closeModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg font-medium">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Check authentication
+    if (localStorage.getItem("authenticated") !== "true") {
+      window.location.href = "password.html";
+    }
+
+    // DOM elements
+    const ordersList = document.getElementById("ordersList");
+    const noOrders = document.getElementById("noOrders");
+    const searchInput = document.getElementById("searchInput");
+    const filterPayment = document.getElementById("filterPayment");
+    const sortBy = document.getElementById("sortBy");
+    const orderCount = document.getElementById("orderCount");
+    const orderModal = document.getElementById("orderModal");
+    const modalContent = document.getElementById("modalContent");
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      renderOrders();
+      
+      // Search functionality
+      searchInput.addEventListener('input', () => {
+        renderOrders();
+      });
+    });
+
+    // Render orders with filters and sorting
+    function renderOrders() {
+      ordersList.innerHTML = "";
+      let orders = JSON.parse(localStorage.getItem("orders")) || [];
+      
+      // Apply filters
+      const searchTerm = searchInput.value.toLowerCase();
+      const paymentFilter = filterPayment.value;
+      
+      orders = orders.filter(order => {
+        const matchesSearch = 
+          order.id.toLowerCase().includes(searchTerm) ||
+          order.customer.toLowerCase().includes(searchTerm) ||
+          order.product.toLowerCase().includes(searchTerm) ||
+          order.phone.toLowerCase().includes(searchTerm) ||
+          order.wilaya.toLowerCase().includes(searchTerm);
+        
+        const matchesPayment = paymentFilter === 'all' || order.payment === paymentFilter;
+        
+        return matchesSearch && matchesPayment;
+      });
+      
+      // Apply sorting
+      const sortOption = sortBy.value;
+      orders.sort((a, b) => {
+        switch(sortOption) {
+          case 'date-desc': return new Date(b.date) - new Date(a.date);
+          case 'date-asc': return new Date(a.date) - new Date(b.date);
+          case 'name-asc': return a.customer.localeCompare(b.customer);
+          case 'name-desc': return b.customer.localeCompare(a.customer);
+          default: return 0;
+        }
+      });
+      
+      // Update order count
+      orderCount.textContent = orders.length;
+      
+      if (orders.length === 0) {
+        noOrders.classList.remove("hidden");
+      } else {
+        noOrders.classList.add("hidden");
+        orders.forEach((order, index) => {
+          const tr = document.createElement("tr");
+          tr.className = "hover:bg-gray-50 fade-in";
+          tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${order.id}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(order.date)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${order.customer}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${order.product}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${order.quantity}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${order.phone}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${order.wilaya}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="status-badge ${getPaymentBadgeClass(order.payment)}">
+                ${getPaymentText(order.payment)}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex space-x-2">
+              <button onclick="viewOrderDetails(${index})" class="action-btn bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded-lg text-xs font-medium">
+                <i class="fas fa-eye mr-1"></i> Voir
+              </button>
+              <button onclick="sendWhatsApp('${order.phone}')" class="action-btn bg-green-100 hover:bg-green-200 text-green-800 px-3 py-1 rounded-lg text-xs font-medium">
+                <i class="fab fa-whatsapp mr-1"></i> WhatsApp
+              </button>
+              <button onclick="deleteOrder(${index})" class="action-btn bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1 rounded-lg text-xs font-medium">
+                <i class="fas fa-trash-alt mr-1"></i> Supprimer
+              </button>
+            </td>
+          `;
+          ordersList.appendChild(tr);
+        });
+      }
+    }
+
+    // Format date for display
+    function formatDate(dateString) {
+      const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+      return new Date(dateString).toLocaleDateString('fr-FR', options);
+    }
+
+    // Get payment text
+    function getPaymentText(payment) {
+      switch(payment) {
+        case 'cash': return 'À domicile';
+        case 'card': return 'Carte';
+        case 'edahabia': return 'EDahabia';
+        default: return payment;
+      }
+    }
+
+    // Get payment badge class
+    function getPaymentBadgeClass(payment) {
+      switch(payment) {
+        case 'cash': return 'bg-yellow-100 text-yellow-800';
+        case 'card': return 'bg-purple-100 text-purple-800';
+        case 'edahabia': return 'bg-blue-100 text-blue-800';
+        default: return 'bg-gray-100 text-gray-800';
+      }
+    }
+
+    // View order details
+    function viewOrderDetails(index) {
+      const orders = JSON.parse(localStorage.getItem("orders")) || [];
+      const order = orders[index];
+      
+      modalContent.innerHTML = `
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 class="text-sm font-medium text-gray-500">ID de commande</h4>
+              <p class="mt-1 text-sm text-gray-900">${order.id}</p>
+            </div>
+            <div>
+              <h4 class="text-sm font-medium text-gray-500">Date</h4>
+              <p class="mt-1 text-sm text-gray-900">${formatDate(order.date)}</p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 class="text-sm font-medium text-gray-500">Client</h4>
+              <p class="mt-1 text-sm text-gray-900">${order.customer}</p>
+            </div>
+            <div>
+              <h4 class="text-sm font-medium text-gray-500">Téléphone</h4>
+              <p class="mt-1 text-sm text-gray-900">${order.phone}</p>
+            </div>
+          </div>
+          
+          <div>
+            <h4 class="text-sm font-medium text-gray-500">Adresse</h4>
+            <p class="mt-1 text-sm text-gray-900">${order.address}, ${order.wilaya}</p>
+          </div>
+          
+          <div class="border-t border-gray-200 pt-4">
+            <h4 class="text-sm font-medium text-gray-500">Produit commandé</h4>
+            <div class="mt-2 bg-gray-50 rounded-lg p-4">
+              <div class="flex justify-between">
+                <p class="text-sm font-medium text-gray-900">${order.product}</p>
+                <p class="text-sm text-gray-500">Qté: ${order.quantity}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 class="text-sm font-medium text-gray-500">Méthode de paiement</h4>
+              <p class="mt-1 text-sm text-gray-900">${getPaymentText(order.payment)}</p>
+            </div>
+            <div>
+              <h4 class="text-sm font-medium text-gray-500">Statut</h4>
+              <p class="mt-1 text-sm text-gray-900">En attente</p>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      orderModal.classList.remove("hidden");
+    }
+
+    // Close modal
+    function closeModal() {
+      orderModal.classList.add("hidden");
+    }
+
+    // Send WhatsApp message
+    function sendWhatsApp(phone) {
+      const cleanPhone = phone.replace(/[^0-9]/g, '');
+      const url = `https://wa.me/213${cleanPhone}`;
+      window.open(url, '_blank');
+    }
+
+    // Delete order
+    function deleteOrder(index) {
+      if (confirm("Voulez-vous vraiment supprimer cette commande ?")) {
+        let orders = JSON.parse(localStorage.getItem("orders")) || [];
+        orders.splice(index, 1);
+        localStorage.setItem("orders", JSON.stringify(orders));
+        renderOrders();
+        
+        // Show success message
+        showToast('Commande supprimée avec succès', 'success');
+      }
+    }
+
+    // Export to CSV
+    function exportToCSV() {
+      const orders = JSON.parse(localStorage.getItem("orders")) || [];
+      if (orders.length === 0) {
+        showToast('Aucune commande à exporter', 'error');
+        return;
+      }
+      
+      const headers = ["ID", "Date", "Client", "Produit", "Quantité", "Téléphone", "Wilaya", "Adresse", "Paiement"];
+      const csv = [
+        headers.join(";"),
+        ...orders.map(o => [
+          o.id,
+          o.date,
+          o.customer,
+          o.product,
+          o.quantity,
+          o.phone,
+          o.wilaya,
+          o.address,
+          getPaymentText(o.payment)
+        ].join(";"))
+      ].join("\n");
+      
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `export-commandes-${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+      
+      showToast('Exportation réussie', 'success');
+    }
+
+    // Logout
+    function logout() {
+      if (confirm("Voulez-vous vous déconnecter ?")) {
+        localStorage.removeItem("authenticated");
+        window.location.href = "password.html";
+      }
+    }
+
+    // Show toast notification
+    function showToast(message, type) {
+      const toast = document.createElement('div');
+      toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white font-medium flex items-center ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+      }`;
+      toast.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
+        ${message}
+      `;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
